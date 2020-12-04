@@ -56,30 +56,10 @@ fn validate_hgt(passport: &HashMap<String, String>) -> bool {
   }
 }
 
-fn validate_hcl(passport: &HashMap<String, String>) -> bool {
-  match passport.get("hcl") {
+fn validate_regex(passport: &HashMap<String, String>, key: &str, exp: &str) -> bool {
+  match passport.get(key) {
     Some(value) => {
-      let re = Regex::new(r"^#[a-f0-9]{6}$").unwrap();
-      return re.is_match(value)
-    },
-    None => return false
-  }
-}
-
-fn validate_ecl(passport: &HashMap<String, String>) -> bool {
-  match passport.get("ecl") {
-    Some(value) => {
-      let re = Regex::new(r"^(amb)|(blu)|(brn)|(gry)|(grn)|(hzl)|(oth)$").unwrap();
-      return re.is_match(value)
-    },
-    None => return false
-  }
-}
-
-fn validate_pid(passport: &HashMap<String, String>) -> bool {
-  match passport.get("pid") {
-    Some(value) => {
-      let re = Regex::new(r"^\d{9}$").unwrap();
+      let re = Regex::new(exp).unwrap();
       return re.is_match(value)
     },
     None => return false
@@ -99,13 +79,13 @@ fn validate_passport2(passport: &HashMap<String, String>) -> i32 {
   if !validate_hgt(&passport) {
     return 0;
   }
-  if !validate_hcl(&passport) {
+  if !validate_regex(&passport, "hcl", r"^#[a-f0-9]{6}$") {
     return 0;
   }
-  if !validate_ecl(&passport) {
+  if !validate_regex(&passport, "ecl", r"^(amb)|(blu)|(brn)|(gry)|(grn)|(hzl)|(oth)$") {
     return 0;
   }
-  if !validate_pid(&passport) {
+  if !validate_regex(&passport, "pid", r"^\d{9}$") {
     return 0;
   }
   return 1;
