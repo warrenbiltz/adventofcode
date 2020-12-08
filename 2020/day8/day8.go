@@ -29,20 +29,20 @@ func (ins *Instruction) Invert() {
 	}
 }
 
+func (ins *Instruction) Execute(acc int, line int) (int, int) {
+	if ins.cmd == "jmp" {
+		return acc, line + ins.arg
+	} else if ins.cmd == "acc" {
+		return acc + ins.arg, line + 1
+	} else {
+		return acc, line + 1
+	}
+}
+
 func parse(line string) Instruction {
 	fields := strings.Fields(line)
 	num, _ := strconv.Atoi(fields[1])
 	return Instruction{fields[0], num}
-}
-
-func execute(instruction Instruction, acc int, line int) (int, int) {
-	if instruction.cmd == "jmp" {
-		return acc, line + instruction.arg
-	} else if instruction.cmd == "acc" {
-		return acc + instruction.arg, line + 1
-	} else {
-		return acc, line + 1
-	}
 }
 
 func trace_cycle(execution_path map[int]int, last int, start int) ([]int, int) {
@@ -70,7 +70,7 @@ func run(instructions []Instruction, execution_path map[int]int, start int) (int
 			break
 		}
 		prev := line
-		acc, line = execute(instructions[line], acc, line)
+		acc, line = instructions[line].Execute(acc, line)
 		execution_path[prev] = line
 	}
 	return acc, line
