@@ -42,12 +42,12 @@ func getMasks(maskStr string) (int64, []int64) {
 	}
 	var addressMasks []int64
 	for n := int64(0); n < twoPowX; n++ {
-		bitPos := twoPowX / 2
+		bitPos := int64(1)
 		addressMask := int64(0)
 		for _, x := range xPositions {
 			bit := ithBit(n, bitPos)
 			addressMask = addressMask | (bit << x)
-			bitPos = bitPos / 2
+			bitPos = bitPos * 2
 		}
 		addressMasks = append(addressMasks, addressMask|valMask)
 	}
