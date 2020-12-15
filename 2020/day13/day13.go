@@ -74,17 +74,7 @@ func consolidateSchedule(groups [][]bus) []bus {
 	return consolidated
 }
 
-func main() {
-	scheduleStr := strings.Split(input, ",")
-	var schedule []bus
-
-	for i, s := range scheduleStr {
-		if s != "x" {
-			id, _ := strconv.Atoi(s)
-			schedule = append(schedule, bus{int64(id), int64(i)})
-		}
-	}
-
+func solve1(schedule []bus) int64 {
 	groups := getGroups(schedule)
 	fmt.Println("Groups:")
 	for _, g := range groups {
@@ -111,9 +101,32 @@ func main() {
 		time += maxID
 		found = isValid(consolidated, time)
 	}
-	fmt.Println("Validating:", time, isValid(schedule, time))
-	for _, b := range schedule {
-		fmt.Println("Bus:", b, (time+b.offset)%b.id)
+	return time
+}
+
+func solve2(schedule []bus) int64 {
+	acc := schedule[0]
+	for _, b := range schedule[1:] {
+		sync := acc.offset
+		for (sync+b.offset)%b.id != 0 {
+			sync += acc.id
+		}
+		acc.id = acc.id * b.id
+		acc.offset = sync
 	}
-	fmt.Println("Answer:", time)
+	return acc.offset
+}
+
+func main() {
+	scheduleStr := strings.Split(input, ",")
+	var schedule []bus
+
+	for i, s := range scheduleStr {
+		if s != "x" {
+			id, _ := strconv.Atoi(s)
+			schedule = append(schedule, bus{int64(id), int64(i)})
+		}
+	}
+	fmt.Println("Solve 1:", solve1(schedule))
+	fmt.Println("Solve 2:", solve2(schedule))
 }
