@@ -318,11 +318,7 @@ func align(img [][]rune, o string) [][]rune {
 }
 
 func (t *tile) align() {
-	fmt.Println("Orig:", t.id, string(t.orientation))
-	printImg(t.img)
 	t.img = align(t.img, string(t.orientation))
-	fmt.Println("Align:", t.id, string(t.orientation))
-	printImg(t.img)
 }
 
 func createFullImg(grid [][]int) [][]rune {
@@ -383,7 +379,7 @@ func getMonsterPattern() []gridPos {
 		}
 		row++
 	}
-	fmt.Println(monster)
+	fmt.Println("Monster:", monster)
 	return monster
 }
 
@@ -440,15 +436,7 @@ func main() {
 	gridSize = int(math.Sqrt(float64(numTiles)))
 
 	fmt.Printf("Got %d (%d) Tiles:\n\n", numTiles, gridSize)
-	for _, k := range keys {
-		fmt.Println(k)
-	}
-	// for _, t := range tiles {
-	// 	fmt.Println(t)
-	// }
-	// for k, v := range outlineToTiles {
-	// 	fmt.Println(k, ":", v)
-	// }
+
 	grid := solveGrid()
 	fullImg := createFullImg(grid)
 	alive := countAlive(fullImg)
@@ -460,13 +448,11 @@ func main() {
 	for i := 0; i < 4; i++ {
 		monsterPositions = findMonsters(fullImg, monsterPattern)
 		if len(monsterPositions) > 0 {
-			fmt.Println("FOUND", len(monsterPositions))
 			break
 		} else {
 			fullImg = flipVertical(fullImg)
 			monsterPositions = findMonsters(fullImg, monsterPattern)
 			if len(monsterPositions) > 0 {
-				fmt.Println("FOUND", len(monsterPositions))
 				break
 			} else {
 				fullImg = flipVertical(fullImg)
