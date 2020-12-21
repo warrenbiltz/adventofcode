@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type tile struct {
@@ -75,6 +76,13 @@ var possibleOrientations = []string{"NESW", "nWsE", "EsWn", "enws", "swne", "SeN
 var outlineToTiles = make(map[uint][]idOutline)
 var gridSize = 0
 var numTiles = 0
+
+func (t *tile) hasFitsOnSide(side int) bool {
+	if fits, found := outlineToTiles[t.getOutline(side)]; found {
+		return len(fits) > 1
+	}
+	return false
+}
 
 func registerNewTile(id int, img [][]rune) {
 	outline := make(map[rune]uint)
@@ -173,32 +181,47 @@ func solveHelper(grid [][]int, available map[int]bool) (bool, [][]int, map[int]b
 	row := tileNr / gridSize
 	col := tileNr % gridSize
 	solved := false
-	for id := range available {
-		delete(available, id)
-		for _, o := range possibleOrientations {
-			tiles[id].orient(o)
+	var leftTile, topTile int
+	var leftOutline, topOutline uint
+	candidates := make([]idOutline, 0)
+	if col > 0 {
+		leftTile = grid[row][col-1]
+		leftOutline = tiles[leftTile].getOutline(right)
+		candidates = append(candidates, outlineToTiles[leftOutline]...)
+	}
+	if row > 0 {
+		topTile = grid[row-1][col]
+		topOutline = tiles[topTile].getOutline(down)
+		if col == 0 {
+			candidates = append(candidates, outlineToTiles[topOutline]...)
+		}
+	}
+
+	for _, c := range candidates {
+		if _, avail := available[c.id]; avail {
+			delete(available, c.id)
+			if col > 0 {
+				tiles[c.id].orientWithOutlineOnSide(c.outline, left)
+			} else if row > 0 {
+				tiles[c.id].orientWithOutlineOnSide(c.outline, up)
+			}
 			leftFits := true
 			if col > 0 {
-				leftTile := grid[row][col-1]
-				leftFits = tiles[leftTile].getOutline(right) == tiles[id].getOutline(left)
+				leftFits = leftOutline == tiles[c.id].getOutline(left)
 			}
 			topFits := true
 			if row > 0 {
-				topTile := grid[row-1][col]
-				topFits = tiles[topTile].getOutline(down) == tiles[id].getOutline(up)
+				topFits = topOutline == tiles[c.id].getOutline(up)
 			}
 			if leftFits && topFits {
-				grid[row][col] = id
+				grid[row][col] = c.id
 				solved, grid, available = solveHelper(grid, available)
 				if solved {
 					break
 				}
 			}
+			available[c.id] = true
 		}
-		if solved {
-			break
-		}
-		available[id] = true
 	}
 	return solved, grid, available
 }
@@ -215,10 +238,12 @@ func solveGrid() [][]int {
 		delete(available, k)
 		for _, o := range possibleOrientations {
 			tiles[k].orient(o)
-			grid[0][0] = k
-			solved, grid, available = solveHelper(grid, available)
-			if solved {
-				break
+			if tiles[k].hasFitsOnSide(down) && tiles[k].hasFitsOnSide(right) {
+				grid[0][0] = k
+				solved, grid, available = solveHelper(grid, available)
+				if solved {
+					break
+				}
 			}
 		}
 		if solved {
@@ -437,7 +462,9 @@ func main() {
 
 	fmt.Printf("Got %d (%d) Tiles:\n\n", numTiles, gridSize)
 
+	start := time.Now()
 	grid := solveGrid()
+	gridSolveTime := time.Since(start)
 	fullImg := createFullImg(grid)
 	alive := countAlive(fullImg)
 
@@ -466,4 +493,7 @@ func main() {
 	}
 	numMonsters := len(monsterPositions)
 	fmt.Println("Roughness: ", numMonsters, alive-int64(numMonsters*monsterSize))
+
+	totalDuration := time.Since(start)
+	fmt.Println("Solved in:", gridSolveTime, totalDuration)
 }
