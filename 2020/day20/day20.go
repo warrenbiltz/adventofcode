@@ -384,7 +384,13 @@ type gridPos struct {
 	c int
 }
 
-func getMonsterPattern() []gridPos {
+type monster struct {
+	positions []gridPos
+	maxPos    gridPos
+	size      int
+}
+
+func getMonster() monster {
 	file, err := os.Open("monster.txt")
 	if err != nil {
 		log.Fatalf("failed to open")
@@ -394,35 +400,83 @@ func getMonsterPattern() []gridPos {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	var monster []gridPos
+	var rowMax = 0
+	var colMax = 0
+	var positions []gridPos
 	row := 0
 	for scanner.Scan() {
 		for col, r := range scanner.Text() {
 			if r == '#' {
-				monster = append(monster, gridPos{row, col})
+				positions = append(positions, gridPos{row, col})
+				if row > rowMax {
+					rowMax = row
+				}
+				if col > colMax {
+					colMax = col
+				}
 			}
 		}
 		row++
 	}
-	fmt.Println("Monster:", monster)
-	return monster
+	return monster{positions, gridPos{rowMax, colMax}, len(positions)}
 }
 
-func findMonsterAt(img [][]rune, monsterPattern []gridPos, pos gridPos) bool {
-	for _, m := range monsterPattern {
+func rotateMonster(m monster) monster {
+	const monsterImgSize = 20
+	var rowMax = 0
+	var colMax = 0
+	var rowMin = monsterImgSize
+	var colMin = monsterImgSize
+
+	var newPositions []gridPos
+	for _, p := range m.positions {
+		r := p.c
+		c := monsterImgSize - p.r - 1
+		if r < rowMin {
+			rowMin = r
+		}
+		if r > rowMax {
+			rowMax = r
+		}
+		if c < colMin {
+			colMin = c
+		}
+		if c > colMax {
+			colMax = c
+		}
+		newPositions = append(newPositions, gridPos{r, c})
+	}
+
+	for i := range newPositions {
+		newPositions[i] = gridPos{newPositions[i].r - rowMin, newPositions[i].c - colMin}
+	}
+	return monster{newPositions, gridPos{rowMax - rowMin, colMax - colMin}, m.size}
+}
+
+func flipMonster(m monster) monster {
+	var newPositions []gridPos
+	for _, p := range m.positions {
+		c := m.maxPos.c - p.c
+		newPositions = append(newPositions, gridPos{p.r, c})
+	}
+	return monster{newPositions, m.maxPos, m.size}
+}
+
+func findMonsterAt(img [][]rune, m monster, pos gridPos) bool {
+	for _, m := range m.positions {
 		if img[pos.r+m.r][pos.c+m.c] != '#' {
 			return false
 		}
 	}
 	return true
 }
-func findMonsters(img [][]rune, monsterPattern []gridPos) []gridPos {
+func findMonsters(img [][]rune, m monster) []gridPos {
 	var monsterPositions []gridPos
 
-	for r := 0; r < len(img)-3; r++ {
-		for c := 0; c < len(img)-20; c++ {
+	for r := 0; r+m.maxPos.r < len(img); r++ {
+		for c := 0; c+m.maxPos.c < len(img); c++ {
 			pos := gridPos{r, c}
-			if findMonsterAt(img, monsterPattern, pos) {
+			if findMonsterAt(img, m, pos) {
 				monsterPositions = append(monsterPositions, pos)
 			}
 		}
@@ -468,31 +522,29 @@ func main() {
 	fullImg := createFullImg(grid)
 	alive := countAlive(fullImg)
 
-	monsterPattern := getMonsterPattern()
-	monsterSize := len(monsterPattern)
+	monster := getMonster()
 	var monsterPositions []gridPos
-
 	for i := 0; i < 4; i++ {
-		monsterPositions = findMonsters(fullImg, monsterPattern)
+		monsterPositions = findMonsters(fullImg, monster)
 		if len(monsterPositions) > 0 {
 			break
 		} else {
-			fullImg = flipVertical(fullImg)
-			monsterPositions = findMonsters(fullImg, monsterPattern)
+			monster = flipMonster(monster)
+			monsterPositions = findMonsters(fullImg, monster)
 			if len(monsterPositions) > 0 {
 				break
 			} else {
-				fullImg = flipVertical(fullImg)
+				monster = flipMonster(monster)
 			}
 		}
-		fullImg = rotateLeft(fullImg)
+		monster = rotateMonster(monster)
 	}
-	fmt.Println("FINAL IMG:")
-	for _, row := range fullImg {
-		fmt.Println(string(row))
-	}
+	// fmt.Println("FINAL IMG:")
+	// for _, row := range fullImg {
+	// 	fmt.Println(string(row))
+	// }
 	numMonsters := len(monsterPositions)
-	fmt.Println("Roughness: ", numMonsters, alive-int64(numMonsters*monsterSize))
+	fmt.Println("Roughness: ", numMonsters, alive-int64(numMonsters*monster.size))
 
 	totalDuration := time.Since(start)
 	fmt.Println("Solved in:", gridSolveTime, totalDuration)
