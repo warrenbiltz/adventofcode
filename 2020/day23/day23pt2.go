@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var numCups = 1000000
@@ -86,6 +87,7 @@ func main() {
 		e := cups.PushBack(n)
 		cupMap[n] = e
 	}
+	start := time.Now()
 	play(10000000)
 	e1 := next(cupMap[1])
 	e2 := next(e1)
@@ -93,4 +95,6 @@ func main() {
 	e2v := e2.Value.(int)
 	//fmt.Printf("Answer 1: %s\n", printList(cupMap[1]))
 	fmt.Printf("Answer 2: %d | %d | %d\n", e1v, e2v, e1v*e2v)
+	totalDuration := time.Since(start)
+	fmt.Println("Solved in:", totalDuration)
 }
