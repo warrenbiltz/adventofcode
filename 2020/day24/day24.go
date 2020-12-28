@@ -6,23 +6,35 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
-type cubePos struct {
-	x int
-	y int
-	z int
+type hexaPos struct {
+	q int
+	r int
 }
 
-func (p cubePos) String() string {
-	return fmt.Sprintf("(%d|%d|%d)", p.x, p.y, p.z)
+func (p hexaPos) String() string {
+	return fmt.Sprintf("(%d|%d)", p.q, p.r)
 }
 
-var neighbors = []string{"ne", "e", "se", "sw", "w", "nw"}
+func (p hexaPos) add(o hexaPos) hexaPos {
+	return hexaPos{p.q + o.q, p.r + o.r}
+}
 
-type tileMap map[cubePos]bool
+var neighbors = []hexaPos{hexaPos{1, -1}, hexaPos{1, 0}, hexaPos{0, 1}, hexaPos{-1, 1}, hexaPos{-1, 0}, hexaPos{0, -1}}
+var stepMap = map[string]hexaPos{
+	"ne": hexaPos{1, -1},
+	"e":  hexaPos{1, 0},
+	"se": hexaPos{0, 1},
+	"sw": hexaPos{-1, 1},
+	"w":  hexaPos{-1, 0},
+	"nw": hexaPos{0, -1},
+}
 
-func flipTile(t cubePos, blackTiles tileMap) {
+type tileMap map[hexaPos]bool
+
+func flipTile(t hexaPos, blackTiles tileMap) {
 	if _, found := blackTiles[t]; found {
 		delete(blackTiles, t)
 	} else {
@@ -30,38 +42,14 @@ func flipTile(t cubePos, blackTiles tileMap) {
 	}
 }
 
-func parseStep(step string, from cubePos) cubePos {
-	var dx, dy, dz int
-	if step == "ne" {
-		dx = 1
-		dz = -1
-	} else if step == "e" {
-		dx = 1
-		dy = -1
-	} else if step == "se" {
-		dy = -1
-		dz = 1
-	} else if step == "sw" {
-		dx = -1
-		dz = 1
-	} else if step == "w" {
-		dx = -1
-		dy = 1
-	} else { //nw
-		dy = 1
-		dz = -1
-	}
-	return cubePos{from.x + dx, from.y + dy, from.z + dz}
-}
-
-func parseDirections(line string) cubePos {
-	currPos := cubePos{0, 0, 0}
+func parseDirections(line string) hexaPos {
+	currPos := hexaPos{0, 0}
 	for i := 0; i < len(line); i++ {
 		if line[i] == 'n' || line[i] == 's' {
-			currPos = parseStep(line[i:i+2], currPos)
+			currPos = currPos.add(stepMap[line[i:i+2]])
 			i++
 		} else {
-			currPos = parseStep(string(line[i]), currPos)
+			currPos = currPos.add(stepMap[string(line[i])])
 		}
 	}
 	return currPos
@@ -77,17 +65,17 @@ func solve1(directions []string) tileMap {
 	return blackTiles
 }
 
-func countBlack(t cubePos, blackTiles tileMap) int {
+func countBlack(t hexaPos, blackTiles tileMap) int {
 	if _, found := blackTiles[t]; found {
 		return 1
 	}
 	return 0
 }
 
-func countBlackNeighbors(t cubePos, blackTiles tileMap) int {
+func countBlackNeighbors(t hexaPos, blackTiles tileMap) int {
 	b := 0
 	for _, s := range neighbors {
-		n := parseStep(s, t)
+		n := t.add(s)
 		b += countBlack(n, blackTiles)
 		if b > 2 {
 			break
@@ -96,10 +84,10 @@ func countBlackNeighbors(t cubePos, blackTiles tileMap) int {
 	return b
 }
 
-func getNeighbors(t cubePos, neighborMap tileMap) {
+func getNeighbors(t hexaPos, neighborMap tileMap) {
 	neighborMap[t] = true
 	for _, s := range neighbors {
-		n := parseStep(s, t)
+		n := t.add(s)
 		neighborMap[n] = true
 	}
 }
@@ -147,6 +135,10 @@ func main() {
 		line := strings.TrimSpace(scanner.Text())
 		directions = append(directions, line)
 	}
+
+	start := time.Now()
 	blackTiles := solve1(directions)
 	solve2(blackTiles)
+	totalDuration := time.Since(start)
+	fmt.Println("Solved in:", totalDuration)
 }
